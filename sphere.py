@@ -15,6 +15,7 @@ try:
     from OpenGL.GLUT import *
 except:
     print "OpenGL wrapper for python not found"
+    #print("OpenGL wrapper for python not found") #for python3
 
 # Last time when sphere was re-displayed
 last_time = 0
@@ -190,6 +191,8 @@ def main():
 
     # Create the window with given title
     glutCreateWindow('Sphere')
+    #glutCreateWindow(b'Sphere') # for python3
+
 
     # Instantiate the sphere object
     s = Sphere(1.0)
