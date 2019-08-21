@@ -1,0 +1,114 @@
+Simplex Stop-AND-Wait Protocol - Protocol 2
+
+
+[ HEADER.H ]
+#include<stdio.h>
+#include<fcntl.h>
+#include<string.h>
+struct frame
+{
+ int ack,sno ;
+ char data[50] ;
+};
+
+void from_network_layer(char buffer[])
+{
+ printf("\n ENTER DATA : ");
+ scanf("%s",buffer);
+}
+void to_physical_layer(struct frame *f)
+{
+ int pid1;
+ system(">pipe1") ;
+ pid1=open("pipe1",O_WRONLY);
+ if(pid1>0)
+ {
+  write(pid1,f,sizeof(struct frame));
+ }
+ close(pid1);
+}
+int getack()
+{
+ int pid2,ack=0 ;
+ pid2=open("pipe2",O_RDONLY);
+ if(pid2>0)
+ {
+  read(pid2,&ack,sizeof(ack));
+ }
+ return ack ;
+}
+
+void to_network_layer(char buffer[])
+{
+ printf("\n %s ",buffer);
+}
+void from_physical_layer(struct frame *f)
+{
+ int pid1;
+ pid1=open("pipe1",O_RDONLY);
+ if(pid1>0)
+ {
+  read(pid1,f,sizeof(struct frame));
+  unlink("pipe1");
+ }
+ close(pid1);
+}
+
+void sendack(int ack)
+{
+ system(">pipe2");
+ int pid ;
+ pid=open("pipe2",O_WRONLY);
+ write(pid,&ack,sizeof(ack));
+ close(pid);
+}
+
+
+[ SENDER SIDE ]
+
+
+#include<stdio.h>
+#include<fcntl.h>
+#include<string.h>
+#include "header.h"
+void main()
+
+
+{
+ int i,datalen ;
+ char buffer[50] ;
+ struct frame f ;
+ printf("\n ENTER HOW MANY DATA : ");
+ scanf ("%d",&datalen);
+ for(i=1;i<=datalen;i++)
+ {
+  from_network_layer(buffer) ;
+  strcpy(f.data,buffer);
+  f.sno=i ;
+  to_physical_layer(&f);
+  while(getack()!=i)
+  {
+   sleep(2);
+  } 
+ } 
+}
+
+[ RECEIVER SIDE ]
+
+
+#include<stdio.h>
+#include<fcntl.h>
+#include<string.h>
+#include "header.h"
+
+
+void main()
+{
+ int i=0 ;
+ char buffer[50] ;
+ struct frame f ;
+ from_physical_layer(&f) ;
+ strcpy(buffer,f.data) ;
+ to_network_layer(buffer);
+ sendack(f.sno);
+}

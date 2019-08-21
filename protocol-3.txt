@@ -1,0 +1,152 @@
+Protocol - 3 (Simplex Protocol For Noisy Channel)
+
+
+[ SENDER SIDE ]
+
+#include<stdio.h>
+#include<fcntl.h>
+#include<string.h>
+typedef struct
+{
+ int seqno,ackno;
+ char data[50];
+}frame;
+int getAck()
+{
+ int pid,ack=0;
+ pid=open("pipe2",O_RDONLY);
+ if(pid>0)
+ {
+  read(pid,&ack,sizeof(ack));
+  unlink("pipe2");
+ } 
+ close(pid);
+ return ack;
+}
+int start_timer(int ack)
+{
+ int i;
+ printf("\ntimer starts");
+ for(i=0;i<10;i++)
+ {
+  printf("\n%d",i+1);
+  sleep(1);
+  if(ack==getAck())
+  {
+   return 0;
+  }
+ }
+ return 1;
+}
+void from_network_layer(char buffer[])
+{
+ printf("Enter data : ");
+ scanf("%s",buffer);
+}
+void to_physical_layer(frame *f)
+{
+ int pid;
+ system(">pipe1");
+ pid=open("pipe1",O_WRONLY);
+ if(pid>0)
+ {
+  write(pid,f,sizeof(frame));
+ }
+ close(pid);
+}
+void main()
+{
+ int n,i;
+ char buffer[50];
+ frame f;
+ printf("Enter how many data want to send : ");
+ scanf("%d",&n);
+ for(i=1;i<=n;i++)
+ {
+  from_network_layer(buffer);
+  strcpy(f.data,buffer);
+  f.seqno=i;
+  do  
+  {
+   printf("\n\t...data send...\n");
+   to_physical_layer(&f);
+  }while(start_timer(i));
+ }
+}
+
+
+[ RECEIVER SIDE ]
+
+
+#include<stdio.h>
+#include<fcntl.h>
+#include<string.h>
+typedef struct
+{
+ int seqno,ackno;
+ char data[50];
+}frame;
+int getAck()
+{
+ int pid,ack=0;
+ pid=open("pipe2",O_RDONLY);
+ if(pid>0)
+ {
+  read(pid,&ack,sizeof(ack));
+  unlink("pipe2");
+ } 
+ close(pid);
+ return ack;
+}
+int start_timer(int ack)
+{
+ int i;
+ printf("\ntimer starts");
+ for(i=0;i<10;i++)
+ {
+  printf("\n%d",i+1);
+  sleep(1);
+  if(ack==getAck())
+  {
+   return 0;
+  }
+ }
+ return 1;
+}
+void to_network_layer(char buffer[])
+{
+ printf("\nYour data : %s",buffer);
+}
+void from_physical_layer(frame *f)
+{
+ int pid;
+ pid=open("pipe1",O_RDONLY);
+ printf("\nfile operation : %d\n",pid);
+ if(pid>0)
+ {
+  read(pid,f,sizeof(frame));
+  unlink("pipe1");
+ }
+ close(pid);
+}
+void send_ack(int seqno)
+{
+ int pid; 
+ system(">pipe2");
+ pid=open("pipe2",O_WRONLY);
+ if(pid>0)
+ {
+  write(pid,&seqno,sizeof(seqno));
+ } 
+ close(pid);
+}
+void main()
+{
+ int n,i;
+ char buffer[50];
+ frame f;
+ from_physical_layer(&f);
+ strcpy(buffer,f.data);
+ to_network_layer(buffer);
+ send_ack(f.seqno);
+}
